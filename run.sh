@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Remove already existing zip files
-rm evaluation_script.zip
-rm challenge_config.zip
+rm -f evaluation_script.zip
+rm -f challenge_config.zip
 
 # Create new zip configuration according the updated code
 zip -r -j evaluation_script.zip evaluation_script/*  -x "*.DS_Store"
