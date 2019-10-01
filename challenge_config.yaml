@@ -20,27 +20,70 @@ leaderboard:
 
 challenge_phases:
   - id: 1
-    name: Phase 1
+    name: Question 1
     description: templates/challenge_phase_1_description.html
     leaderboard_public: True
     is_public: True
     start_date: 2019-10-03 00:00:00
     end_date: 2019-10-20 23:59:59
     test_annotation_file: annotations/test_annotations_devsplit.json
-    codename: phase1
+    codename: phase-q1
+    max_submissions_per_day: 5
+    max_submissions_per_month: 50
+    max_submissions: 50
+  - id: 2
+    name: Question 2
+    description: templates/challenge_phase_1_description.html
+    leaderboard_public: True
+    is_public: True
+    start_date: 2019-10-03 00:00:00
+    end_date: 2019-10-20 23:59:59
+    test_annotation_file: annotations/test_annotations_devsplit.json
+    codename: phase-q2
+    max_submissions_per_day: 5
+    max_submissions_per_month: 50
+    max_submissions: 50
+  - id: 3
+    name: Question 3
+    description: templates/challenge_phase_1_description.html
+    leaderboard_public: True
+    is_public: True
+    start_date: 2019-10-03 00:00:00
+    end_date: 2019-10-20 23:59:59
+    test_annotation_file: annotations/test_annotations_devsplit.json
+    codename: phase-q3
     max_submissions_per_day: 5
     max_submissions_per_month: 50
     max_submissions: 50
 
+
 dataset_splits:
   - id: 1
-    name: Test Split
-    codename: test_split
+    name: Test Split 1
+    codename: data-q1
+  - id: 2
+    name: Test Split 2
+    codename: data-q2
+  - id: 3
+    name: Test Split 3
+    codename: data-q3
 
 challenge_phase_splits:
   - challenge_phase_id: 1
     leaderboard_id: 1
     dataset_split_id: 1
+    visibility: 3
+    leaderboard_decimal_precision: 2
+    is_leaderboard_order_descending: True
+  - challenge_phase_id: 2
+    leaderboard_id: 2
+    dataset_split_id: 2
+    visibility: 3
+    leaderboard_decimal_precision: 2
+    is_leaderboard_order_descending: True
+  - challenge_phase_id: 3
+    leaderboard_id: 3
+    dataset_split_id: 3
     visibility: 3
     leaderboard_decimal_precision: 2
     is_leaderboard_order_descending: True

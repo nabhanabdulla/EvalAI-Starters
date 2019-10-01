@@ -11,18 +11,19 @@ def get_curr_working_dir():
 def run():
     current_working_directory = get_curr_working_dir()
     sys.path.append("{}".format(current_working_directory))
-    sys.path.append("{}/challenge_data/challenge_1".format(current_working_directory))
+    # sys.path.append("{}/challenge_data/challenge_1".format(current_working_directory))
+    sys.path.append("{}/evaluation_script".format(current_working_directory))
 
     challenge_id = 1
-    challenge_phase = "phase1"  # Add the challenge phase codename to be tested
+    challenge_phase = "phase-q1"  # Add the challenge phase codename to be tested
     annotation_file_path = "{}/annotations/test_annotations_testsplit.json".format(
         current_working_directory
     )  # Add the test annotation file path
-    user_submission_file_path = "{}/submission.csv".format(
+    user_submission_file_path = "{}/submission.py".format(
         current_working_directory
     )  # Add the sample submission file path
 
-    CHALLENGE_IMPORT_STRING = "challenge_data.challenge_1"
+    CHALLENGE_IMPORT_STRING = "evaluation_script"
     challenge_module = importlib.import_module(CHALLENGE_IMPORT_STRING)
 
     EVALUATION_SCRIPTS = {}

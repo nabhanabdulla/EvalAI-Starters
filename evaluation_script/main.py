@@ -4,7 +4,12 @@ evaluate() code is modified version from https://github.com/live-wire/EvalAI-Exa
 
 
 import random
+import sys
+import os
+import configparser
+import importlib
 
+from helpers import *
 
 def evaluate(test_annotation_file, user_submission_file, phase_codename, **kwargs):
     print("Starting Evaluation.....")
@@ -46,56 +51,83 @@ def evaluate(test_annotation_file, user_submission_file, phase_codename, **kwarg
         }
     """
     print(kwargs["submission_metadata"])
-    # output = {}
-    # if phase_codename == "phase1":
-    #     print("Evaluating for Phase 1")
-    #     output["result"] = [
-    #         {
-    #             "train_split":{
-    #                 "test_score": random.randint(0, 99),
-    #             }
-    #         },
-    #         {
-    #             "test_split": {
-    #                 "test_score": random.randint(0, 99),
-    #             }
-    #         },
-    #     ]
-    #     # To display the results in the result file
-    #     output["submission_result"] = output["result"][0]
-    #     print("Completed evaluation for Test Phase")
-    result = {}
     
-    if phase_codename == "phase1":
-        test_file = "data/answers.csv"
-        
-        answers = pd.read_csv(test_file)
-        user = pd.read_csv(user_submission_file)
-        
-        submission_result = ""
-        
-        result['result'] = []
-        result["submission_result"] = submission_result
-        
-        if len(user) != len(answers):
-            submission_result = "Number of rows in the training data ("+str(len(answers))+") and the submission file ("+str(len(user))+") don't match."
-            result["submission_result"] = submission_result
-            return result
-        
-        temp = {}
-        temp[phase_codename] = {}
-        matches = 0
-        
-        for i in range(len(user)):
-            if user.iloc[i]['label'] == answers.iloc[i]['label']:
-                matches = matches+1
-                
-        accuracy = (matches/len(user))*100
-        print("Accuracy:",accuracy)
-        
-        temp[phase_codename]['accuracy'] = accuracy
-        result['result'].append(temp)
-        submission_result = "Evaluated accuracy for "+str(phase_codename)+". Accuracy="+str(accuracy)
-        result["submission_result"] = submission_result
-        
+    result = {}
+    result['result'] = []
+    
+    ## 1. Add submission file path to system path and import submission file as module
+    ## 'input_file': 'https://abc.xyz/path/to/submission/main.py'
+
+    # input file name - 'main.py'
+    input_script = user_submission_file.split('/')[-1]
+    # print(input_script)
+
+    # input file path - 'https://abc.xyz/path/to/submission'
+    input_script_path = user_submission_file[:-len(input_script)] # or '/'.join(user_submission_file.split('/')[:-1])
+    # print(input_script_path)
+
+    # input file name - 'main'
+    input_script_name = input_script.split('.')[0]
+    # print(input_script_name)
+
+    # add file path to system path
+    sys.path.insert(0, input_script_path)
+
+    # import python script submitted as module
+    submission_script = importlib.import_module(input_script_name)
+
+
+    ## 2. Read question metadata from config and save
+
+    # read the config file
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+
+    print(config.sections())
+    # variable to store question data
+    qn_map = {}
+
+    # add question test file name
+    qn_map['test_file'] = config[phase_codename]['TestFile']
+
+
+    ## 3. Get features and labels
+    qn_map['features'], qn_map['label'] = get_test_data(qn_map['test_file'])
+
+    
+    ## 4. Get prediction
+    y_pred = submission_script.main(qn_map['features'])
+
+
+    ## 5. Find accuracy
+    y = qn_map['label']
+
+    acc = get_accuracy(y_pred, y)
+
+    ## 6. Store data for leaderboard
+    res = {}
+
+    if phase_codename == 'phase-q1':
+        split_name = 'data-q1'
+    elif phase_codename == 'phase-q2':
+        split_name = 'data-q2'
+    elif phase_codename == 'phase-q3':
+        split_name = 'data-q3'
+
+    res[split_name] = {}
+
+    res[split_name]['Accuracy'] = acc 
+    result['result'].append(res)    
+
+    submission_result = "Evaluated scores for the phase '" + str(phase_codename) + "' - split '" + str(split_name) + "' - Accuracy=" + str(acc) +'.'
+    result['submission_result'] = submission_result
+
+    print(result)
+
     return result 
+
+def main():
+    evaluate()
+
+if __name__ == "__main__":
+    evaluate()
