@@ -119,7 +119,7 @@ def evaluate(test_annotation_file, user_submission_file, phase_codename, **kwarg
     res[split_name]['Accuracy'] = acc 
     result['result'].append(res)    
 
-    submission_result = "Evaluated scores for the phase '" + str(phase_codename) + "' - split '" + str(split_name) + "' - Accuracy=" + str(acc) +'.'
+    submission_result = "Evaluated scores for the phase '" + str(phase_codename) + "' - split '" + str(split_name) + "'  - Accuracy=" + str(acc) +'.'
     result['submission_result'] = submission_result
 
     print(result)
