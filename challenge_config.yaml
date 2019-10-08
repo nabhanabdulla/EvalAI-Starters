@@ -1,3 +1,12 @@
+# Challenge procedure:
+#   1. The challenge will be hosted for students of our college and they will be given 3 problems to work on. 
+#   2. Participants will upload the python scripts to EvalAI and the evaluation script has to run the submission script
+#     (questions will be basic machine learning and won't be compute intensive) and compute output metric to be shown in the public leaderboard.
+#   3. The Leaderboard has to display Name, Branch, Year, Score of Q1, Score of Q2, Score of Q3 and the Total cumulative scores from 
+#   the three questions.
+
+
+
 # If you are not sure what all these fields mean, please refer our documentation here:
 # http://evalai.readthedocs.io/en/latest/challenge_creation.html#challenge-creation-using-zip-configuration
 title: MLabs Recruitment Challenge 2019
