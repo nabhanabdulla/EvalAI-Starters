@@ -9,6 +9,9 @@ import os
 import configparser
 import importlib
 
+import numpy as np
+import time
+
 from helpers import *
 
 def evaluate(test_annotation_file, user_submission_file, phase_codename, **kwargs):
@@ -50,7 +53,7 @@ def evaluate(test_annotation_file, user_submission_file, phase_codename, **kwarg
             'submitted_at': u'2017-03-20T19:22:03.880652Z'
         }
     """
-    print(kwargs["submission_metadata"])
+    # print(kwargs["submission_metadata"])
     
     result = {}
     result['result'] = []
@@ -59,7 +62,11 @@ def evaluate(test_annotation_file, user_submission_file, phase_codename, **kwarg
     ## 'input_file': 'https://abc.xyz/path/to/submission/main.py'
 
     # input file name - 'main.py'
-    input_script = user_submission_file.split('/')[-1]
+    if '/' in user_submission_file:
+        input_script = user_submission_file.split('/')[-1]
+    else:
+        input_script = user_submission_file.split('\\')[-1]
+
     # print(input_script)
 
     # input file path - 'https://abc.xyz/path/to/submission'
@@ -85,49 +92,237 @@ def evaluate(test_annotation_file, user_submission_file, phase_codename, **kwarg
 
     print(config.sections())
     # variable to store question data
-    qn_map = {}
+    # qn_map = {}
 
     # add question test file name
-    qn_map['test_file'] = config[phase_codename]['TestFile']
+    data_dir = config[phase_codename]['TestFile']
 
 
-    ## 3. Get features and labels
-    qn_map['features'], qn_map['label'] = get_test_data(qn_map['test_file'])
+    # ## 3. Get features and labels
+    # qn_map['features'], qn_map['label'] = get_test_data(qn_map['test_file'])
 
+
+    if input_script_name == "gradient_descent":
+        optimizer = submission_script.optimizer
+
+        # load data
+        x_, y_ = submission_script.load_data(data_dir)
+
+        # time stamp
+        start = time.time()
+
+        try:
+            # gradient descent
+            params = optimizer['init_params']
+            old_cost = 1e10
+            for iter_ in range(optimizer['max_iterations']):
+                # evaluate cost and gradient
+                cost = submission_script.evaluate_cost(x_,y_,params)
+                grad = submission_script.evaluate_gradient(x_,y_,params)
+                # display
+                if(iter_ % 10 == 0):
+                    print('iter: {} cost: {} params: {}'.format(iter_, cost, params))
+                # check convergence
+                if(abs(old_cost - cost) < optimizer['eps']):
+                    break
+                # udpate parameters
+                params = submission_script.update_params(params,grad,optimizer['alpha'])
+                old_cost = cost
+        except:
+            cost = optimizer['inf']
+        
+        res = {}
+        split_name = 'q1'
+        res[split_name] = {}
+
+        res[split_name]['rmse'] = cost 
+        result['result'].append(res)
+
+        submission_result = "Evaluated scores for the phase '" + str(phase_codename) + "' - split '" + str(split_name) + "': " + str(cost) +'.'
+
+    elif input_script_name == "eigenfaces":
+        opts = submission_script.opts 
+
+        # time stamp
+        start = time.time()
+
+        try:
+            # extract features of all faces
+            featFaces, featTest = submission_script.readImages(opts['dirName'],opts['refSize'],opts['fExt'])
+            print("featFaces: {}, featTest {}".format(featFaces.shape, featTest.shape))
+            
+            
+            # extract mean face
+            meanFaces, stddFaces = submission_script.extract_mean_stdd_faces(featFaces)
+            print("meanFaces: {}, stddFaces: {}".format(meanFaces.shape, stddFaces.shape))
+            
+            # normalize faces
+            # ref: https://stats.stackexchange.com/questions/69157/why-do-we-need-to-normalize-data-before-principal-component-analysis-pca
+            # ref: https://stackoverflow.com/questions/23047235/matlab-how-to-normalize-image-to-zero-and-unit-variance
+            normFaces = submission_script.normalize_faces(featFaces, meanFaces, stddFaces)
+            print("normFaces: {}".format(normFaces.shape))
+                
+            # covariance matrix
+            covrFaces = submission_script.compute_covariance_matrix(normFaces) + opts['eps']
+            print("covrFaces: {}".format(covrFaces.shape))
+            
+            # eigenvalues and eigenvectors
+            eigval, eigvec = submission_script.compute_eigval_eigvec(covrFaces)
+            print("eigval: {} eigvec: {}".format(eigval.shape, eigvec.shape))
+            
+            # find number of eigvenvalues cumulatively smaller than energhTh
+            cumEigval = np.cumsum(eigval / sum(eigval))
+            numSignificantEigval = next(i for i,v in enumerate(cumEigval) if v > opts['energyTh'])
+            
+            # show top 90% eigenvectors
+            # call this function to visualize eigenvectors
+            submission_script.show_eigvec(eigvec, cumEigval, opts['refSize'],opts['energyTh'])
+            
+            # reconstruct test image
+            rmse = submission_script.reconstruct_test(featTest, meanFaces, stddFaces, eigvec, numSignificantEigval)
+            print('#eigval preserving {}% of energy: {}'.format(100*opts['energyTh'],numSignificantEigval))
+        except:
+            rmse = opts['inf']
+
+        # final output
+        print('time elapsed: {}'.format(time.time() - start))
+        print('rmse on compressed test image: {} (lower the better)'.format(rmse))
+
+
+        res = {}
+        split_name = 'q2'
+        res[split_name] = {}
+
+        res[split_name]['rmse'] = rmse 
+        result['result'].append(res)
+
+        submission_result = "Evaluated scores for the phase '" + str(phase_codename) + "' - split '" + str(split_name) + "': " + str(rmse) +'.'
+
+
+    elif input_script_name == "classification":
+        opts = submission_script.opts 
+
+        np.random.seed(opts['seed'])
+
+        # time stamp
+        start = time.time()
+
+        # data_dir = r"D:\\Projects\\MLabs\ML18\\ML19 Recruitment\\mlabs-2018-problem-set\\data\\ETHZShapeClasses-V1.2\\"
+        # print(data_dir)
+
+        # read the data
+        feat,label = submission_script.read_data(data_dir,
+                            opts['classNames'],
+                            opts['fExt'],
+                            opts['refSize'])
+
+        # train test split
+        ftrain,ftest,ltrain,ltest = submission_script.train_test_split(feat,label,opts['trainSplit'])
+
+        try:
+            classifier_svm = submission_script.train_svm(ftrain, ltrain)
+            predicted = submission_script.test_classifier(ftest, classifier_svm)
+            f1ScoreSVC = submission_script.eval_performance(predicted,ltest,classifier_svm)
+
+            classifier_rf = submission_script.train_random_forest(ftrain, ltrain)
+            predicted = submission_script.test_classifier(ftest, classifier_rf)
+            f1ScoreRF = submission_script.eval_performance(predicted,ltest,classifier_rf)
+
+            f1ScoreBest = f1ScoreSVC if(f1ScoreSVC>f1ScoreRF) else f1ScoreRF
+            f1ScoreReport = 1-f1ScoreBest
+        except:
+            f1ScoreReport = opts['inf']
     
-    ## 4. Get prediction
-    y_pred = submission_script.main(qn_map['features'])
+        res = {}
+        split_name = 'q3'
+        res[split_name] = {}
+
+        res[split_name]['f1-score'] = f1ScoreReport 
+        result['result'].append(res)
+
+        submission_result = "Evaluated scores for the phase '" + str(phase_codename) + "' - split '" + str(split_name) + "': " + str(f1ScoreReport) +'.'
+
+    elif input_script_name == "disparity":
+        opts = submission_script.opts 
+
+        # time stamp
+        start = time.time()
+
+        # read the data
+        view1,view2,gth12,gth21 = submission_script.read_data(data_dir,opts['downsample'])
+
+        try:
+            disp12 = submission_script.compute_disparity(view1, view2, opts['halfPatchSize'])
+            disp21 = submission_script.compute_disparity(view2, view1, opts['halfPatchSize'])
+            sse = np.sum(np.power((disp12-gth12),2)) + np.sum(np.power((disp21-gth21),2))
+            sse /= (disp12.shape[0]*disp12.shape[1])
+            
+            # display results
+            plt.subplot(321)
+            plt.imshow(view1)
+            plt.title('view1')
+            plt.subplot(322)
+            plt.imshow(view2)
+            plt.title('view2')
+            plt.subplot(323)
+            plt.imshow(gth12)
+            plt.title('gth12')
+            plt.subplot(324)
+            plt.imshow(gth21)
+            plt.title('gth21')
+            plt.subplot(325)
+            plt.imshow(disp12)
+            plt.title('computed12')
+            plt.subplot(326)
+            plt.imshow(disp21)
+            plt.title('computed21')
+        except:
+            sse = opts['inf']
+            
+        # final output
+        print('time elapsed: {}'.format(time.time() - start))
+        print("total sum of squared error: {} (lower the better)".format(sse))
+
+        res = {}
+        split_name = 'q4'
+        res[split_name] = {}
+
+        res[split_name]['sse'] = sse 
+        result['result'].append(res)
+
+        submission_result = "Evaluated scores for the phase '" + str(phase_codename) + "' - split '" + str(split_name) + "': " + str(sse) +'.'
 
 
-    ## 5. Find accuracy
-    y = qn_map['label']
+    # ## 4. Get prediction
+    # y_pred = submission_script.main(qn_map['features'])
 
-    acc = get_accuracy(y_pred, y)
+
+    # ## 5. Find accuracy
+    # y = qn_map['label']
+
+    # acc = get_accuracy(y_pred, y)
 
     ## 6. Store data for leaderboard
-    res = {}
+    # res = {}
 
-    if phase_codename == 'phase-q1':
-        split_name = 'data-q1'
-    elif phase_codename == 'phase-q2':
-        split_name = 'data-q2'
-    elif phase_codename == 'phase-q3':
-        split_name = 'data-q3'
+    # if phase_codename == 'phase-q1':
+    #     split_name = 'data-q1'
+    # elif phase_codename == 'phase-q2':
+    #     split_name = 'data-q2'
+    # elif phase_codename == 'phase-q3':
+    #     split_name = 'data-q3'
 
-    res[split_name] = {}
+    # res[split_name] = {}
 
-    res[split_name]['accuracy'] = acc 
-    result['result'].append(res)    
+    # res[split_name]['accuracy'] = acc 
+    # result['result'].append(res)    
 
-    submission_result = "Evaluated scores for the phase '" + str(phase_codename) + "' - split '" + str(split_name) + "'  - Accuracy=" + str(acc) +'.'
     result['submission_result'] = submission_result
 
     print(result)
 
     return result 
 
-def main():
-    evaluate()
 
 if __name__ == "__main__":
     evaluate()
