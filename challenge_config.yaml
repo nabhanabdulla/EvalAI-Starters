@@ -1,8 +1,8 @@
 # Challenge procedure:
-#   1. The challenge will be hosted for students of our college and they will be given 3 problems to work on. 
-#   2. Participants will upload the python scripts to EvalAI and the evaluation script has to run the submission script
-#     (questions will be basic machine learning and won't be compute intensive) and compute output metric to be shown in the public leaderboard.
-#   3. The Leaderboard has to display Name, Branch, Year, Score of Q1, Score of Q2, Score of Q3 and the Total cumulative scores from 
+#   1. The challenge will be hosted for students of our college and they will be given 4 problems to work on. 
+#   2. Participants will upload separate python scripts for each problem to EvalAI and the evaluation script has to run the submission script on 
+#   the data and compute output metric to be shown in the public leaderboard.
+#   3. A single Leaderboard has to display Name, Branch, Year, Score of Q1, Score of Q2, Score of Q3, Score of Q4 and the Total cumulative scores from 
 #   the three questions.
 
 
@@ -19,13 +19,13 @@ submission_guidelines: templates/submission_guidelines.html
 leaderboard_description: You will be competing against your batchmates, so make sure you are on top!
 evaluation_script: evaluation_script.zip
 remote_evaluation: False
-start_date: 2019-10-03 00:00:00
-end_date: 2019-10-20 23:59:59
+start_date: 2019-10-17 00:00:00
+end_date: 2019-11-15 23:59:59
 published: True
 
 leaderboard:
   - id: 1
-    schema: {"labels": ["Name", "Branch", "Year", "Q1-Score", "Q2-Score", "Q3-Score", "Total"], "default_order_by": "Total"}
+    schema: {"labels": ["Name", "Branch", "Year", "Q1-Score", "Q2-Score", "Q3-Score", "Q4-Score", "Total"], "default_order_by": "Total"}
 
 challenge_phases:
   - id: 1
@@ -33,8 +33,8 @@ challenge_phases:
     description: templates/challenge_phase_1_description.html
     leaderboard_public: True
     is_public: True
-    start_date: 2019-10-03 00:00:00
-    end_date: 2019-10-20 23:59:59
+    start_date: 2019-10-17 00:00:00
+    end_date: 2019-11-15 23:59:59
     test_annotation_file: annotations/test_annotations_devsplit.json
     codename: phase1
     max_submissions_per_day: 100
